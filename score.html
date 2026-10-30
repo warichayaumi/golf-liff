@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>กรอกสกอร์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Noto+Serif+Thai:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fairway: #1F4E3D; --fairway-deep: #12352A; --mist: #F3F6F1; --paper: #FFFFFF;
+    --line: #D5DED6; --ink: #1B2420; --ink-soft: #55635B; --flag: #C8372D;
+    --danger: #B3261E; --danger-bg: #FBEAE8; --ok: #1F6B45; --ok-bg: #E3F1E8;
+    --wait: #7A5A00; --wait-bg: #FBF1D6;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fairway: #5FB08D; --fairway-deep: #0F2A21; --mist: #0E1512; --paper: #16201B;
+      --line: #2C3A33; --ink: #E7EEE9; --ink-soft: #9DADA4; --flag: #E0574C;
+      --danger: #F2A49C; --danger-bg: #3A1B18; --ok: #8FD3AE; --ok-bg: #173226;
+      --wait: #E9C766; --wait-bg: #3A3016;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 17px; line-height: 1.6; color: var(--ink); background: var(--mist);
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+  }
+  .card-head {
+    background: var(--fairway-deep); color: #F3F6F1;
+    padding: calc(24px + env(safe-area-inset-top, 0px)) 22px 28px; position: relative;
+  }
+  .card-head::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 10px;
+    background: radial-gradient(circle at 8px 10px, var(--mist) 5px, transparent 5.5px) repeat-x;
+    background-size: 16px 10px;
+  }
+  .back {
+    background: none; border: 0; color: #BFD3C7; font: inherit; font-size: 15px;
+    padding: 0 0 8px; cursor: pointer;
+  }
+  h1 { font-family: "Noto Serif Thai", Georgia, serif; font-weight: 600; font-size: 27px; line-height: 1.3; margin: 0; }
+  .sub { margin: 4px 0 0; color: #BFD3C7; font-size: 15px; }
+  main { max-width: 560px; margin: 0 auto; padding: 12px 16px 0; }
+
+  .event {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px; margin-top: 14px;
+  }
+  .event h2 { font-size: 18px; font-weight: 600; margin: 0; }
+  .meta { color: var(--ink-soft); font-size: 15px; margin: 2px 0 12px; }
+  .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tag { font-size: 13px; font-weight: 500; padding: 3px 10px; border-radius: 999px; background: var(--mist); color: var(--ink-soft); }
+  .tag.ok { background: var(--ok-bg); color: var(--ok); }
+  .tag.wait { background: var(--wait-bg); color: var(--wait); }
+  .tag.bad { background: var(--danger-bg); color: var(--danger); }
+
+  button.primary, button.secondary {
+    width: 100%; min-height: 50px; font: inherit; font-weight: 600; border-radius: 12px; cursor: pointer;
+  }
+  button.primary { color: #FFFFFF; background: var(--fairway); border: 0; }
+  button.secondary { color: var(--fairway); background: transparent; border: 1.5px solid var(--fairway); }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  .note { background: var(--danger-bg); color: var(--danger); border-radius: 10px; padding: 12px 14px; font-size: 15px; margin-top: 14px; }
+  .info { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 15px; color: var(--ink-soft); margin-top: 14px; }
+
+  .totals {
+    position: sticky; top: 0; z-index: 2; background: var(--mist);
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px 0 10px;
+  }
+  .tot { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 6px 4px; text-align: center; }
+  .tot span { display: block; font-size: 12px; color: var(--ink-soft); letter-spacing: 1px; }
+  .tot b { font-size: 20px; font-weight: 600; }
+  .save-state { font-size: 13px; color: var(--ink-soft); text-align: right; min-height: 20px; margin-bottom: 4px; }
+  .save-state.err { color: var(--danger); cursor: pointer; }
+
+  .hole { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 14px; margin-bottom: 10px; }
+  .hole.done { border-color: var(--fairway); }
+  .hole-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .hole-no { font-weight: 600; }
+  .hole-no small { font-weight: 400; color: var(--ink-soft); font-size: 14px; margin-left: 6px; }
+  .hole-result { font-size: 14px; color: var(--ink-soft); }
+  .hole-result b { color: var(--ink); font-size: 18px; margin-left: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    flex: 0 0 calc((100% - 35px) / 6); min-height: 46px; font: inherit; font-size: 16px; font-weight: 600;
+    color: var(--ink); background: var(--mist); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; padding: 0;
+  }
+  .chip.rare { color: var(--ink-soft); font-weight: 500; }
+  .chip.on { background: var(--fairway); border-color: var(--fairway); color: #FFFFFF; }
+  .chip:disabled { opacity: 0.3; cursor: default; }
+  .custom { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 15px; color: var(--ink-soft); }
+  .custom input {
+    width: 90px; min-height: 44px; font: inherit; text-align: center; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+  }
+
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; background: var(--paper); border-top: 1px solid var(--line);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .bar-inner { max-width: 560px; margin: 0 auto; }
+
+  .state { text-align: center; padding: 56px 20px; color: var(--ink-soft); }
+  .state h2 { font-family: "Noto Serif Thai", Georgia, serif; color: var(--ink); font-size: 23px; margin: 0 0 8px; }
+  .state p { margin: 0 0 22px; }
+  .spinner {
+    width: 32px; height: 32px; margin: 0 auto 16px; border: 3px solid var(--line); border-top-color: var(--fairway);
+    border-radius: 50%; animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header class="card-head">
+  <button class="back" id="back" type="button" hidden>‹ รายการแข่งทั้งหมด</button>
+  <h1 id="title">รายการแข่ง</h1>
+  <p class="sub" id="sub">กำลังเชื่อมต่อกับ LINE</p>
+</header>
+
+<main>
+  <section class="state" id="v-loading"><div class="spinner"></div><p>กำลังโหลดข้อมูล</p></section>
+  <section class="state" id="v-fatal" hidden>
+    <h2>เปิดหน้านี้ไม่สำเร็จ</h2><p id="fatal-msg"></p>
+    <button class="primary" type="button" onclick="location.reload()">ลองอีกครั้ง</button>
+  </section>
+  <section class="state" id="v-member" hidden>
+    <h2>ลงทะเบียนสมาชิกก่อน</h2><p>ต้องเป็นสมาชิกก่อนจึงจะสมัครแข่งและกรอกสกอร์ได้</p>
+    <button class="primary" type="button" id="go-register">ลงทะเบียนสมาชิก</button>
+  </section>
+  <section id="v-list" hidden></section>
+  <section id="v-score" hidden>
+    <div class="totals">
+      <div class="tot"><span>OUT</span><b id="t-out">–</b></div>
+      <div class="tot"><span>IN</span><b id="t-in">–</b></div>
+      <div class="tot"><span>รวม</span><b id="t-total">–</b></div>
+      <div class="tot"><span>เทียบ PAR</span><b id="t-par">–</b></div>
+    </div>
+    <div class="save-state" id="save-state"></div>
+    <div id="score-msgs"></div>
+    <div id="holes"></div>
+  </section>
+</main>
+
+<div class="bar" id="bar" hidden><div class="bar-inner">
+  <button class="primary" type="button" id="submit-btn">ยืนยันสกอร์</button>
+</div></div>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+  const LIFF_ID = '2012286082-yjySE5Ch';
+  const REGISTER_URL = 'https://liff.line.me/2012286082-glvQWKco';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwEGMSJRRfsSIHnNTgRV3E6POiUs5OatKj7MadewzYhXHqXg3Mnm0CfQQcyCQQY-kky/exec';
+
+  const NUMS = [3, 4, 5, 6, 7, 8];
+  const REL = [
+    { code: 'B', diff: -1, label: 'Birdie' },
+    { code: 'P', diff: 0, label: 'Par' },
+    { code: 'BG', diff: 1, label: 'Bogey' },
+  ];
+  const REL_NAMES = { '-3': 'Albatross', '-2': 'Eagle', '-1': 'Birdie', '0': 'Par', '1': 'Bogey', '2': 'Double', '3': 'Triple', '4': 'Quad' };
+  const STATUS = {
+    draft: ['กำลังกรอก', ''], submitted: ['รอแอดมินตรวจ', 'wait'],
+    approved: ['อนุมัติแล้ว', 'ok'], rejected: ['ถูกตีกลับ', 'bad'],
+  };
+
+  const $ = id => document.getElementById(id);
+  let events = [];
+  let cur = null;
+  let holes = [];
+  let customOpen = {};
+  let saveTimer = null;
+  let saving = false;
+  let pending = false;
+  let dirty = false;
+
+  async function api(action, data) {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, idToken: liff.getIDToken(), data }),
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'ระบบขัดข้อง');
+    return json;
+  }
+
+  function show(view) {
+    ['v-loading', 'v-fatal', 'v-member', 'v-list', 'v-score'].forEach(v => { $(v).hidden = v !== view; });
+    $('bar').hidden = view !== 'v-score';
+    $('back').hidden = view !== 'v-score';
+  }
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function thaiDate(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return isNaN(d) ? iso : d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // ---------- event list ----------
+
+  function renderList() {
+    $('title').textContent = 'รายการแข่ง';
+    $('sub').textContent = 'สมัครแข่งและกรอกสกอร์';
+    const box = $('v-list');
+    box.textContent = '';
+    if (!events.length) {
+      box.append(el('div', 'info', 'ยังไม่มีรายการแข่งที่เปิดอยู่ตอนนี้'));
+    }
+    events.forEach(ev => {
+      const card = el('div', 'event');
+      card.append(el('h2', '', ev.name), el('p', 'meta', thaiDate(ev.date) + ' · ' + ev.course_name));
+      const tags = el('div', 'tags');
+      if (ev.registered) {
+        tags.append(el('span', 'tag', ev.flight ? 'Flight ' + ev.flight : 'รอจัด flight'));
+        const st = STATUS[ev.score ? ev.score.status : 'draft'] || STATUS.draft;
+        tags.append(el('span', 'tag ' + st[1], st[0]));
+      } else {
+        tags.append(el('span', 'tag', ev.status === 'open' ? 'เปิดรับสมัคร' : 'ปิดรับสมัครแล้ว'));
+      }
+      card.append(tags);
+
+      if (ev.registered) {
+        const b = el('button', 'primary', 'กรอกสกอร์');
+        b.type = 'button';
+        b.onclick = () => openScore(ev);
+        card.append(b);
+      } else if (ev.status === 'open') {
+        const b = el('button', 'secondary', 'สมัครเข้ารายการนี้');
+        b.type = 'button';
+        b.onclick = () => join(ev, b);
+        card.append(b);
+      }
+      box.append(card);
+    });
+    show('v-list');
+  }
+
+  async function join(ev, btn) {
+    if (!confirm('สมัครเข้ารายการ ' + ev.name + ' ?')) return;
+    btn.disabled = true;
+    btn.textContent = 'กำลังสมัคร';
+    try {
+      const res = await api('joinEvent', { event_id: ev.event_id });
+      events = res.events;
+      renderList();
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+      btn.textContent = 'สมัครเข้ารายการนี้';
+    }
+  }
+
+  // ---------- score entry ----------
+
+  function resultLabel(par, strokes) {
+    if (strokes === 1) return 'Hole in one';
+    if (par == null) return 'สโตรก';
+    const d = strokes - par;
+    return REL_NAMES[String(d)] || (d > 0 ? '+' + d : String(d));
+  }
+  function locked() {
+    return !cur.score || ['submitted', 'approved'].includes(cur.score.status);
+  }
+
+  function openScore(ev) {
+    cur = ev;
+    holes = ev.score ? ev.score.holes.slice() : Array(18).fill(null);
+    customOpen = {};
+    $('title').textContent = ev.name;
+    $('sub').textContent = thaiDate(ev.date) + ' · ' + ev.course_name + (ev.flight ? ' · Flight ' + ev.flight : '');
+    $('save-state').textContent = '';
+    $('save-state').className = 'save-state';
+    renderScore();
+    show('v-score');
+    window.scrollTo(0, 0);
+  }
+
+  function renderScore() {
+    const msgs = $('score-msgs');
+    msgs.textContent = '';
+    const st = cur.score ? cur.score.status : 'draft';
+    if (st === 'rejected' && cur.score.admin_note) msgs.append(el('div', 'note', 'แอดมินตีกลับ: ' + cur.score.admin_note));
+    if (st === 'submitted') msgs.append(el('div', 'info', 'ยืนยันสกอร์แล้ว รอแอดมินตรวจ ถ้าต้องแก้ไขให้ติดต่อแอดมิน'));
+    if (st === 'approved') msgs.append(el('div', 'info', 'แอดมินอนุมัติสกอร์นี้แล้ว'));
+
+    const box = $('holes');
+    box.textContent = '';
+    const ro = locked();
+    const pars = cur.pars || Array(18).fill(null);
+
+    pars.forEach((par, i) => {
+      const strokes = holes[i];
+      const card = el('div', 'hole' + (strokes != null ? ' done' : ''));
+      const top = el('div', 'hole-top');
+      const no = el('span', 'hole-no', 'หลุม ' + (i + 1));
+      if (par) no.append(el('small', '', 'par ' + par));
+      const result = el('span', 'hole-result');
+      if (strokes != null) {
+        result.textContent = resultLabel(par, strokes);
+        result.append(el('b', '', String(strokes)));
+      } else {
+        result.textContent = 'ยังไม่กรอก';
+      }
+      top.append(no, result);
+      card.append(top);
+
+      const chips = el('div', 'chips');
+      const chip = (text, label, on, rare, onTap) => {
+        const b = el('button', 'chip' + (rare ? ' rare' : '') + (on ? ' on' : ''), text);
+        b.type = 'button';
+        b.setAttribute('aria-label', label);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.disabled = ro;
+        b.onclick = onTap;
+        chips.append(b);
+      };
+
+      NUMS.forEach(n => chip(String(n), n + ' สโตรก', strokes === n, false, () => setHole(i, strokes === n ? null : n)));
+      const custom = strokes != null && !NUMS.includes(strokes);
+      chip(custom ? String(strokes) : '+', 'ใส่จำนวนสโตรกเอง', custom, true, () => {
+        customOpen[i] = !customOpen[i];
+        renderScore();
+      });
+      if (par) {
+        REL.forEach(r => {
+          const s = par + r.diff;
+          const on = strokes === s;
+          chip(r.code, r.label + ' = ' + s, on, true, () => setHole(i, on ? null : s));
+        });
+      }
+      card.append(chips);
+
+      if (customOpen[i] && !ro) {
+        const row = el('div', 'custom');
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.inputMode = 'numeric';
+        input.min = 1;
+        input.max = 20;
+        input.value = strokes != null ? strokes : '';
+        const ok = el('button', 'secondary', 'ใช้ค่านี้');
+        ok.type = 'button';
+        ok.style.width = 'auto';
+        ok.style.minHeight = '44px';
+        ok.style.padding = '0 16px';
+        ok.onclick = () => {
+          const v = Number(input.value);
+          if (!Number.isInteger(v) || v < 1 || v > 20) return alert('ใส่จำนวนสโตรก 1–20');
+          setHole(i, v);
+        };
+        row.append(el('span', '', 'จำนวนสโตรก'), input, ok);
+        card.append(row);
+      }
+      box.append(card);
+    });
+
+    renderTotals();
+    const filled = holes.every(v => v != null);
+    $('submit-btn').disabled = ro || !filled;
+    $('submit-btn').textContent = ro ? (STATUS[st] || STATUS.draft)[0] : filled ? 'ยืนยันสกอร์' : 'กรอกครบ 18 หลุมเพื่อยืนยัน';
+  }
+
+  function setHole(i, v) {
+    holes[i] = v;
+    customOpen[i] = false;
+    changed();
+  }
+
+  function renderTotals() {
+    const sum = arr => arr.reduce((a, b) => a + (b || 0), 0);
+    const fmt = (arr) => (arr.some(v => v != null) ? String(sum(arr)) : '–');
+    $('t-out').textContent = fmt(holes.slice(0, 9));
+    $('t-in').textContent = fmt(holes.slice(9));
+    $('t-total').textContent = fmt(holes);
+    let diff = 0, any = false;
+    (cur.pars || []).forEach((p, i) => { if (p != null && holes[i] != null) { diff += holes[i] - p; any = true; } });
+    $('t-par').textContent = !any ? '–' : diff === 0 ? 'E' : (diff > 0 ? '+' : '') + diff;
+  }
+
+  function changed() {
+    renderScore();
+    setSaveState('มีการแก้ไข', false);
+    dirty = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveDraft, 1200);
+  }
+
+  function setSaveState(text, isErr) {
+    const s = $('save-state');
+    s.textContent = text;
+    s.className = 'save-state' + (isErr ? ' err' : '');
+    s.onclick = isErr ? saveDraft : null;
+  }
+
+  async function saveDraft() {
+    if (saving) { pending = true; return; }
+    saving = true;
+    dirty = false;
+    setSaveState('กำลังบันทึก', false);
+    try {
+      const res = await api('saveScore', { event_id: cur.event_id, holes, submit: false });
+      cur.score = Object.assign({}, cur.score, { status: res.status, holes: holes.slice() });
+      setSaveState('บันทึกแล้ว ✓', false);
+    } catch (err) {
+      dirty = true;
+      setSaveState('บันทึกไม่สำเร็จ แตะเพื่อลองใหม่ (' + err.message + ')', true);
+    } finally {
+      saving = false;
+      if (pending) { pending = false; saveDraft(); }
+    }
+  }
+
+  async function submit() {
+    clearTimeout(saveTimer);
+    const total = holes.reduce((a, b) => a + b, 0);
+    if (!confirm('ยืนยันสกอร์รวม ' + total + ' สโตรก?\nหลังยืนยันจะแก้ไขเองไม่ได้ ต้องให้แอดมินตีกลับ')) return;
+    const btn = $('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'กำลังส่ง';
+    try {
+      const res = await api('saveScore', { event_id: cur.event_id, holes, submit: true });
+      cur.score = Object.assign({}, cur.score, { status: res.status, holes: holes.slice(), admin_note: '' });
+      setSaveState('', false);
+      renderScore();
+      window.scrollTo(0, 0);
+    } catch (err) {
+      alert(err.message);
+      renderScore();
+    }
+  }
+
+  async function backToList() {
+    clearTimeout(saveTimer);
+    if (dirty) {
+      await saveDraft();
+      if (dirty && !confirm('ยังบันทึกสกอร์ล่าสุดไม่สำเร็จ ออกจากหน้านี้เลยไหม?')) return;
+    }
+    show('v-loading');
+    try {
+      events = (await api('getEvents')).events;
+      renderList();
+    } catch (err) {
+      $('fatal-msg').textContent = err.message;
+      show('v-fatal');
+    }
+  }
+
+  async function main() {
+    try {
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+      const res = await api('getEvents');
+      if (!res.member) {
+        $('title').textContent = 'รายการแข่ง';
+        $('sub').textContent = '';
+        show('v-member');
+        return;
+      }
+      events = res.events;
+      renderList();
+    } catch (err) {
+      $('fatal-msg').textContent = err.message || 'เชื่อมต่อไม่สำเร็จ';
+      show('v-fatal');
+    }
+  }
+
+  $('submit-btn').addEventListener('click', submit);
+  $('back').addEventListener('click', backToList);
+  $('go-register').addEventListener('click', () => liff.openWindow({ url: REGISTER_URL }));
+  main();
+</script>
+</body>
+</html>
